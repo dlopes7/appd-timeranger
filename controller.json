@@ -1,0 +1,8 @@
+{
+  "protocol": "https",
+  "host": "customer.saas.appdynamics.com",
+  "port": 443,
+  "user": "username",
+  "password": "password",
+  "account": "customer"
+}

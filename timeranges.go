@@ -4,12 +4,49 @@ import (
 	"fmt"
 	"time"
 
+	"encoding/json"
 	"github.com/dlopes7/go-appdynamics-rest-api/appdrest"
 	"github.com/jinzhu/now"
-	"github.com/robfig/cron"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
-var client, err = appdrest.NewClient("https", "customer.saas.appdynamics.com", 443, "user", "password", "customer")
+type Controller struct {
+	Protocol string `json:"protocol"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Account  string `json:"account"`
+}
+
+func readControllerConf() (*Controller, error) {
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	jsonPath := filepath.Join(filepath.Dir(ex), "controller.json")
+
+	jsonFile, err := os.Open(jsonPath)
+	if err != nil {
+		panic(err)
+	}
+	defer jsonFile.Close()
+
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		panic(err)
+	}
+
+	var controller *Controller
+	json.Unmarshal(byteValue, &controller)
+
+	return controller, nil
+}
+
+var controller, _ = readControllerConf()
+var client, _ = appdrest.NewClient(controller.Protocol, controller.Host, controller.Port, controller.User, controller.Password, controller.Account)
 
 func updateTimeRange(name string, startTime time.Time, endTime time.Time) {
 	timeRange, err := client.TimeRange.GetTimeRangeByName(name)
@@ -33,18 +70,8 @@ func updateTimeRange(name string, startTime time.Time, endTime time.Time) {
 
 func main() {
 
-	c := cron.New()
-
-	c.AddFunc("@every 1m", func() { updateTimeRange("Auto - Mes Atual", now.BeginningOfMonth(), time.Now()) })
-	c.AddFunc("@every 1m", func() { updateTimeRange("Auto - Semana Atual", now.BeginningOfWeek(), time.Now()) })
-	c.AddFunc("@every 30m", func() {
-		updateTimeRange("Auto - Mes Passado", now.BeginningOfMonth().AddDate(0, -1, 0), now.BeginningOfMonth())
-	})
-	c.AddFunc("@every 30m", func() {
-		updateTimeRange("Auto - Semana Passada", now.BeginningOfWeek().AddDate(0, 0, -7), now.BeginningOfWeek())
-	})
-
-	c.Start()
-
-	select {}
+	updateTimeRange("Auto - Mes Atual", now.BeginningOfMonth(), time.Now())
+	updateTimeRange("Auto - Semana Atual", now.BeginningOfWeek(), time.Now())
+	updateTimeRange("Auto - Mes Passado", now.BeginningOfMonth().AddDate(0, -1, 0), now.BeginningOfMonth())
+	updateTimeRange("Auto - Semana Passada", now.BeginningOfWeek().AddDate(0, 0, -7), now.BeginningOfWeek())
 }
