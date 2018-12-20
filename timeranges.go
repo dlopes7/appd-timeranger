@@ -53,6 +53,18 @@ func updateTimeRange(name string, startTime time.Time, endTime time.Time) {
 
 	if err != nil {
 		fmt.Printf("Não foi possível obter o Time Range: %s\n", err.Error())
+		fmt.Println("Tentando criar um novo timerange")
+
+		tr := &appdrest.TimeRange{
+			Description: "",
+			Name:        name,
+			Shared:      true,
+			TimeRange: appdrest.TimeDefinition{
+				Type:              "BETWEEN_TIMES",
+				DurationInMinutes: 0,
+			},
+		}
+		timeRange, err = client.TimeRange.CreateTimeRange(*tr)
 	}
 
 	timeRange.ModifiedOn = time.Now().UnixNano() / 1000000
@@ -71,7 +83,17 @@ func updateTimeRange(name string, startTime time.Time, endTime time.Time) {
 func main() {
 
 	updateTimeRange("Auto - Mes Atual", now.BeginningOfMonth(), time.Now())
-	updateTimeRange("Auto - Semana Atual", now.BeginningOfWeek(), time.Now())
 	updateTimeRange("Auto - Mes Passado", now.BeginningOfMonth().AddDate(0, -1, 0), now.BeginningOfMonth())
+
+	updateTimeRange("Auto - Semana Atual", now.BeginningOfWeek(), time.Now())
 	updateTimeRange("Auto - Semana Passada", now.BeginningOfWeek().AddDate(0, 0, -7), now.BeginningOfWeek())
+
+	updateTimeRange("Auto - Dia Atual", now.BeginningOfDay(), now.EndOfDay())
+	updateTimeRange("Auto - Dia Atual Até Agora", now.BeginningOfDay(), time.Now())
+
+	updateTimeRange("Auto - Ontem", now.BeginningOfDay().AddDate(0, 0, -1), now.EndOfDay().AddDate(0, 0, -1))
+	updateTimeRange("Auto - Antes de Ontem", now.BeginningOfDay().AddDate(0, 0, -2), now.EndOfDay().AddDate(0, 0, -2))
+
+	updateTimeRange("Auto - Esse Dia Semana Passada", now.BeginningOfDay().AddDate(0, 0, -7), time.Now().AddDate(0, 0, -7))
+
 }
